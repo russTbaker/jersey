@@ -95,6 +95,22 @@ public final class ApacheClientProperties {
             "jersey.config.apache.client.preemptiveBasicAuthentication";
 
     /**
+     * A value of {@code true} indicates that a cookie store should be associated with the current calling thread.
+     * <p/>
+     * This property may only be set when constructing a {@link org.glassfish.jersey.apache.connector.ApacheConnector}
+     * instance.
+     * <p/>
+     * The value MUST be an instance of {@link java.lang.Boolean}.
+     * <p/>
+     * The default value is {@code false}.
+     * <p/>
+     * The name of the configuration property is <code>{@value}</code>.
+     */
+    @SuppressWarnings("HtmlTagCanBeJavadocTag")
+    public static final String PER_THREAD_COOKIE_STORE =
+            "jersey.config.apache.client.perThreadCookieStore";
+
+    /**
      * Connection Manager which will be used to create {@link org.apache.http.client.HttpClient}.
      * <p/>
      * The value MUST be an instance of {@link org.apache.http.conn.ClientConnectionManager}.

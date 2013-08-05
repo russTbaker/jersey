@@ -64,6 +64,7 @@ import org.glassfish.jersey.client.ClientRequest;
 import org.glassfish.jersey.client.ClientResponse;
 import org.glassfish.jersey.client.spi.AsyncConnectorCallback;
 import org.glassfish.jersey.client.spi.Connector;
+import org.glassfish.jersey.internal.LocalizationMessages;
 import org.glassfish.jersey.internal.util.PropertiesHelper;
 import org.glassfish.jersey.message.internal.OutboundMessageContext;
 import org.glassfish.jersey.message.internal.ReaderWriter;
@@ -159,6 +160,7 @@ public class ApacheConnector implements Connector {
     private final HttpClient client;
     private CookieStore cookieStore = null;
     private boolean preemptiveBasicAuth = false;
+    private boolean perTreadCookieStore = false;
 
     private static final VersionInfo vi;
     private static final String release;
@@ -307,8 +309,16 @@ public class ApacheConnector implements Connector {
                 authCache.put(getHost(request), basicScheme);
                 BasicHttpContext localContext = new BasicHttpContext();
                 localContext.setAttribute(ClientContext.AUTH_CACHE, authCache);
+                // Keep the cookie store isolated to current thread - see http://hc.apache.org/httpcomponents-client-ga/tutorial/html/statemgmt.html#d5e849
+                if(perTreadCookieStore){
+                    response = getHttpClient().execute(getHost(request), request, setBasicCookieStoreContext(localContext));
+                } else {
+                    response = getHttpClient().execute(getHost(request), request, localContext);
+                }
 
-                response = client.execute(getHost(request), request, localContext);
+            } else if(perTreadCookieStore){
+                BasicHttpContext newLocalContext = new BasicHttpContext();
+                response = getHttpClient().execute(getHost(request), request, setBasicCookieStoreContext(newLocalContext));
             } else {
                 response = client.execute(getHost(request), request);
             }
@@ -341,6 +351,12 @@ public class ApacheConnector implements Connector {
         } catch (Exception e) {
             throw new ProcessingException(e);
         }
+    }
+
+    private BasicHttpContext setBasicCookieStoreContext(BasicHttpContext newLocalContext){
+        BasicCookieStore basicCookieStore = new BasicCookieStore();
+        newLocalContext.setAttribute(ClientContext.COOKIE_STORE,basicCookieStore);
+        newLocalContext.setAttribute(org.apache.http.client.params.ClientPNames.COOKIE_POLICY, CookiePolicy.BEST_MATCH);
     }
 
     @Override
